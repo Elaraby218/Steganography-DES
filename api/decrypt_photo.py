@@ -15,7 +15,7 @@ output_gray_image_path = r"H:\subjects\Fth\First Term\secuirty\Project\front\src
 
 @routerDecrypt.post("/api/decrypt")
 def sayHello():
-    res = start_decrypt(stego_image_path, gray_image_path, output_gray_image_path)
+    res = start_decrypt(stego_image_path, output_gray_image_path)
     if res == "Success":
         return JSONResponse(content={"message": "Encryption started"}, status_code=200)
     else:

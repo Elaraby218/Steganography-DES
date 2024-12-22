@@ -258,13 +258,9 @@ def encryption(user_input,start,end):
             col_bits = int(six_bit_groups[i][1:-1], 2)
             # Lookup the S-box value
             s_box_value = s_boxes[i][row_bits][col_bits]
-            # Convert the S-box value to a 4-bit binary string and append to the result
             s_box_substituted += format(s_box_value, '04b')
-        # Apply a P permutation to the result
+
         p_box_result = [s_box_substituted[i - 1] for i in p_box_table]
-        # # Convert the result back to a string for better visualization
-        # p_box_result_str = ''.join(p_box_result)
-        # Convert LPT to a list of bits for the XOR operation
         lpt_list = list(lpt)
         # Perform XOR operation
         new_rpt = [str(int(lpt_list[i]) ^ int(p_box_result[i])) for i in range(32)]
@@ -277,7 +273,6 @@ def encryption(user_input,start,end):
 
 
 
-    # print('\n')
     # At this point, 'lpt' and 'rpt' contain the final left and right halves after 16 rounds
 
     # After the final round, reverse the last swap
@@ -286,10 +281,8 @@ def encryption(user_input,start,end):
     # Perform the final permutation (IP-1)
     final_cipher = [final_result[ip_inverse_table[i] - 1] for i in range(64)]
 
-    # Convert the result back to a string for better visualization
     final_cipher_str = ''.join(final_cipher)
 
-    # Convert binary cipher to ingeter list
     final_cipher_ascii = binstring_to_sublist(final_cipher_str)
     # print("Final Cipher text:", final_cipher_ascii, len(final_cipher_ascii))
     return final_cipher_ascii
@@ -351,36 +344,60 @@ input_image_path = r"H:\subjects\Fth\First Term\secuirty\Project\front\src\Photo
 output_image_path = r"H:\subjects\Fth\First Term\secuirty\Project\front\src\Photos\stegoPhoto.png"
 
 #function that will start everything
+
+
+
 def start_encrypt():
     print("start encrypting")
+
+
+    gray_image = Image.open(image_path_gray)
+    width, height = gray_image.size
+
     grayList = convert_image_to_byte_array()
     rgbList = convert_rgb_to_byte_array()
+
     try:
-        res = encrypt_graylist_in_chunks(grayList)
-        modified = apply_lsb_steganography(rgbList, res)
+
+        gray_size = len(grayList)  # Size in bytes
+
+        # Step 2: Convert width and height to 32-bit binary representations
+        width_in_bits = width.to_bytes(4, byteorder='big')  # 4 bytes for width
+        height_in_bits = height.to_bytes(4, byteorder='big')  # 4 bytes for height
+
+        print(f"Width in bits: {width_in_bits}")
+        print(f"Height in bits: {height_in_bits}")
+
+        # Step 3: Encrypt the grayscale data
+        encrypted_grayList = encrypt_graylist_in_chunks(grayList)
+
+        modified_rgbList = list(width_in_bits) + list(height_in_bits) + encrypted_grayList
+
+        modified = apply_lsb_steganography(rgbList, modified_rgbList)
+
         modify_and_save_rgb_image(input_image_path, modified, output_image_path)
+
         return "Success"
-    except :
+
+    except Exception as e:
+        print(f"Error during encryption process: {e}")
         return "Failed"
+
 
 # start_encrypt()
 # only call the start encrypt function
 
-
 def decryption(final_cipher):
-    # Initialize lists to store round keys
+
     round_keys = generate_round_keys()
     # Apply Initial Permutation
     ip_dec_result_str = ip_on_binary_rep(get_sublist_as_bitstring(final_cipher, 0,8 ))
     lpt = ip_dec_result_str[:32]
     rpt = ip_dec_result_str[32:]
     for round_num in range(16):
-        # Perform expansion (32 bits to 48 bits)
         expanded_result = [rpt[i - 1] for i in e_box_table]
 
-        # Convert the result back to a string for better visualization
         expanded_result_str = ''.join(expanded_result)
-        # print(expanded_result_str)
         # Round key for the current round
         round_key_str = round_keys[15 - round_num]
 
@@ -389,44 +406,30 @@ def decryption(final_cipher):
         for i in range(48):
             xor_result_str += str(int(expanded_result_str[i]) ^ int(round_key_str[i]))
 
-        # Split the 48-bit string into 8 groups of 6 bits each
         six_bit_groups = [xor_result_str[i:i + 6] for i in range(0, 48, 6)]
 
-        # Initialize the substituted bits string
         s_box_substituted = ''
 
-        # Apply S-box substitution for each 6-bit group
         for i in range(8):
             # Extract the row and column bits
             row_bits = int(six_bit_groups[i][0] + six_bit_groups[i][-1], 2)
             col_bits = int(six_bit_groups[i][1:-1], 2)
 
-            # Lookup the S-box value
             s_box_value = s_boxes[i][row_bits][col_bits]
 
-            # Convert the S-box value to a 4-bit binary string and append to the result
             s_box_substituted += format(s_box_value, '04b')
 
-        # Apply a P permutation to the result
         p_box_result = [s_box_substituted[i - 1] for i in p_box_table]
 
-        # Convert the result back to a string for better visualization
-        # p_box_result_str = ''.join(p_box_result)
-
-        # Convert LPT to a list of bits for the XOR operation
         lpt_list = list(lpt)
 
-        # Perform XOR operation
         new_rpt = [str(int(lpt_list[i]) ^ int(p_box_result[i])) for i in range(32)]
 
-        # Convert the result back to a string for better visualization
         new_rpt_str = ''.join(new_rpt)
 
-        # Update LPT and RPT for the next round
         lpt = rpt
         rpt = new_rpt_str
 
-        # Print or use the RPT for each round
 
     # print('\n')
     final_result = rpt + lpt
@@ -436,9 +439,7 @@ def decryption(final_cipher):
     # Convert the result back to a string for better visualization
     final_cipher_str = ''.join(final_cipher)
 
-    # Print or use the final cipher
 
-    # binary cipher string to ascii
     final_cipher_ascii = binstring_to_sublist(final_cipher_str)
     # print("Decryption of Cipher :", final_cipher_ascii)
 
